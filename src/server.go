@@ -13,11 +13,6 @@ import (
 // Static URL for the Wikimedia API
 const WikimediaUrl = "https://en.wikipedia.org/w/api.php?"
 
-type ResponseData struct {
-	Name        string
-	Description string
-}
-
 // Start the server and setup the routes
 func main() {
 	router := gin.Default()
@@ -28,12 +23,12 @@ func main() {
 
 // Make a call to the Wikimedia API to retrieve the
 // data for the passed in name
-func retrievePersonData(name string) string {
+func retrievePersonData(name string) (int, string) {
 
 	// Coble together the request string
 	base, err := url.Parse(WikimediaUrl)
 	if err != nil {
-		return "blah"
+		return http.StatusInternalServerError, "Internal Server Error"
 	}
 
 	// Add on parameters for the request, the name gets
@@ -54,12 +49,12 @@ func retrievePersonData(name string) string {
 	resp, err := c.Get(base.String())
 	if err != nil {
 		fmt.Printf("Error %s", err)
-		return ""
+		return http.StatusInternalServerError, fmt.Sprintf("Error attempting to get data for %s from %s", name, WikimediaUrl)
 	}
 
 	// Parse out the response body and return it
 	body, err := ioutil.ReadAll(resp.Body)
-	return string(body[:])
+	return http.StatusOK, string(body[:])
 
 }
 
@@ -87,10 +82,11 @@ func parsePersonData(name string, data string) string {
 func getPerson(c *gin.Context) {
 	name := c.Query("name")
 
-	contents := retrievePersonData(name)
-	description := parsePersonData(name, contents)
-
-	resp := ResponseData{name, description}
-
-	c.String(http.StatusOK, "{\"%s\": \"%s\"}", resp.Name, resp.Description)
+	status, contents := retrievePersonData(name)
+	if status != http.StatusOK {
+		c.String(status, contents)
+	} else {
+		description := parsePersonData(name, contents)
+		c.String(status, "{\"%s\": \"%s\"}", name, description)
+	}
 }
