@@ -6,12 +6,37 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"errors"
+	"bytes"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Static URL for the Wikimedia API
 const WikimediaUrl = "https://en.wikipedia.org/w/api.php?"
+
+type APIClient struct {
+	URL			string
+	client		*http.Client
+}
+
+func (c *APIClient) Get(params url.Values) (*http.Response, error) {
+
+	// Coble together the request string
+	base, err := url.Parse(c.URL)
+	if err != nil {
+
+		// If it bails out throw an internal server error response
+		t := http.Response{
+			Body: ioutil.NopCloser(bytes.NewBufferString("Internal Server Error")),
+		}
+		return &t, errors.New(fmt.Sprintf("Failed to parse url: %s", c.URL))
+	}
+
+	base.RawQuery = params.Encode()
+	return c.client.Get(base.String())
+
+}
 
 // Start the server and setup the routes
 func main() {
@@ -23,13 +48,9 @@ func main() {
 
 // Make a call to the Wikimedia API to retrieve the
 // data for the passed in name
-func retrievePersonData(name string) (int, string) {
+func retrievePersonData(name string, client *APIClient) (int, string) {
 
-	// Coble together the request string
-	base, err := url.Parse(WikimediaUrl)
-	if err != nil {
-		return http.StatusInternalServerError, "Internal Server Error"
-	}
+
 
 	// Add on parameters for the request, the name gets
 	// passed in here
@@ -42,11 +63,9 @@ func retrievePersonData(name string) (int, string) {
 	p.Add("format", "json")
 	p.Add("rvprop", "content")
 
-	base.RawQuery = p.Encode()
 
 	// Initialize http client and execute the get request
-	c := http.Client{}
-	resp, err := c.Get(base.String())
+	resp, err := client.Get(p)
 	if err != nil {
 		fmt.Printf("Error %s", err)
 		return http.StatusInternalServerError, fmt.Sprintf("Error attempting to get data for %s from %s", name, WikimediaUrl)
@@ -54,6 +73,12 @@ func retrievePersonData(name string) (int, string) {
 
 	// Parse out the response body and return it
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error pasing response %s", err)
+		return http.StatusInternalServerError, fmt.Sprintf("Error attempting to get data for %s from %s", name, WikimediaUrl)	
+	}
+
+	defer resp.Body.Close()
 	return http.StatusOK, string(body[:])
 
 }
@@ -76,17 +101,41 @@ func parsePersonData(name string, data string) string {
 
 }
 
+// Check the data to see if we actually got what
+// we wanted or if it was a miss
+func checkIfMissing(data string) int {
+
+	// Check to see if this substring is in the
+	// data. I know, its hacky and this will give
+	// false negatives
+	re := regexp.MustCompile(`\"missing\":(\s*)true`)
+	match := re.FindStringSubmatch(data)
+
+	if len(match) > 0 {
+		return http.StatusBadRequest
+	} else {
+		return http.StatusOK
+	}
+}
+
 // Route handler to get the short description
 // on the person passed in through the request
 // url
 func getPerson(c *gin.Context) {
-	name := c.Query("name")
 
-	status, contents := retrievePersonData(name)
-	if status != http.StatusOK {
-		c.String(status, contents)
+	name := c.Query("name")
+	client := APIClient {WikimediaUrl, &http.Client{}}
+	queryStatus, contents := retrievePersonData(name, &client)
+	contentStatus := checkIfMissing(contents)
+	fmt.Printf("Contents: %s", contents)
+	fmt.Printf("content status: %d", contentStatus)
+
+	if queryStatus != http.StatusOK {
+		c.String(queryStatus, contents)
+	} else if contentStatus != http.StatusOK {
+		c.String(contentStatus, "Failed to find data for %s", name)
 	} else {
 		description := parsePersonData(name, contents)
-		c.String(status, "{\"%s\": \"%s\"}", name, description)
+		c.String(http.StatusOK, "{\"%s\": \"%s\"}", name, description)
 	}
 }
