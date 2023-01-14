@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,6 +78,9 @@ func retrievePersonData(name string, client *APIClient) (int, string) {
 	}
 
 	defer resp.Body.Close()
+
+	
+
 	return http.StatusOK, string(body[:])
 
 }
@@ -84,10 +88,27 @@ func retrievePersonData(name string, client *APIClient) (int, string) {
 // Parse the data from Wikimedia and return the
 // persons name and a short description
 func parsePersonData(name string, data string) string {
+	
+	// Parse out the content from the json response
+	pageData := ""
+	var jsonMap map[string]any
+	json.Unmarshal([]byte(data), &jsonMap)
+	pages := jsonMap["pages"].([]interface{})
+	for _, page := range pages {
+		revisions := page.(map[string]interface{})["revisions"].([]interface{})
+		if revisions != nil{
+			for _, revision := range revisions {
+				content := revision.(map[string]interface{})["content"]
+				if content != nil {
+					pageData = pageData + content.(string)
+				}
+			}
+		}
+	}
 
 	// Search for a Short description block in the wikimedia data
 	re := regexp.MustCompile(`\{\{(Short description)\|(.*?)\}\}`)
-	match := re.FindStringSubmatch(data)
+	match := re.FindStringSubmatch(pageData)
 
 	// If there was a match for the wildcard return it
 	// otherwise report back that nothing was found
@@ -103,17 +124,21 @@ func parsePersonData(name string, data string) string {
 // we wanted or if it was a miss
 func checkIfMissing(data string) int {
 
-	// Check to see if this substring is in the
-	// data. I know, its hacky and this will give
-	// false negatives
-	re := regexp.MustCompile(`\"missing\":(\s*)true`)
-	match := re.FindStringSubmatch(data)
-
-	if len(match) > 0 {
-		return http.StatusBadRequest
-	} else {
-		return http.StatusOK
+	// Parse the json response and check to see if the
+	// missing field is true
+	var jsonMap map[string]any
+	json.Unmarshal([]byte(data), &jsonMap)
+	pages := jsonMap["pages"].([]interface{})
+	for _, page := range pages {
+		pageData := page.(map[string]interface{})["missing"]
+		if pageData != nil{
+			if strings.ToUpper(pageData.(string)) == "TRUE" {
+				return http.StatusBadRequest
+			}
+		}
 	}
+	return http.StatusOK
+
 }
 
 // Normalize name input. Split the name on the delimiter
