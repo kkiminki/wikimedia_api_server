@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,8 +74,37 @@ func TestCheckIfMissingValid(t *testing.T) {
 func TestCheckIfMissingInvalid(t *testing.T) {
 	data := `SomeJUnkData{{Short description|This should return}}But none of this{"missing": true }`
 	status := checkIfMissing(data)
-	fmt.Printf("status: %d", status)
 	if status != http.StatusBadRequest {
 		t.Fatalf("checkIfMissing returned unexpected value for invalid input: %d", status)
+	}
+}
+
+// This test checks normalizeName against
+// underscore separated input
+func TestNormalizeUnderscoreInput(t *testing.T) {
+	input := "test_name"
+	normalizedInput := normalizeName(input, "_")
+	if normalizedInput != "Test_Name" {
+		t.Fatalf("normalizeName returned unexpected value for underscore separated input: %s", normalizedInput)
+	}
+}
+
+// This test checks normalizeName against
+// space separated input
+func TestNormalizeSpaceInput(t *testing.T) {
+	input := "test name"
+	normalizedInput := normalizeName(input, " ")
+	if normalizedInput != "Test Name" {
+		t.Fatalf("normalizeName returned unexpected value for underscore separated input: %s", normalizedInput)
+	}
+}
+
+// This test checks normalizeName against
+// input that doesn't need to be normalized
+func TestNormalizeInput(t *testing.T) {
+	input := "Testname"
+	normalizedInput := normalizeName(input, " ")
+	if normalizedInput != "Testname" {
+		t.Fatalf("normalizeName returned unexpected value for underscore separated input: %s", normalizedInput)
 	}
 }

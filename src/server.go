@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -113,6 +114,21 @@ func checkIfMissing(data string) int {
 	} else {
 		return http.StatusOK
 	}
+}
+
+// Normalize name input. Split the name on the delimiter
+// passed in
+func normalizeName(name string, delimiter string) string {
+	nameSplit := strings.Split(name, delimiter)
+	var retString string
+	for i, s := range nameSplit {
+		if i == 0 {
+			retString = strings.Title(s)
+		} else {
+			retString = retString + delimiter + strings.Title(s)
+		}
+	}
+	return retString
 }
 
 // Route handler to get the short description
