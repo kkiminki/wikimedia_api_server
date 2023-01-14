@@ -136,17 +136,33 @@ func normalizeName(name string, delimiter string) string {
 // url
 func getPerson(c *gin.Context) {
 
+	// Read in url arguments and normalize the name
+	// unless requested otherwise
 	name := c.Query("name")
+	normalize := c.DefaultQuery("normalized", "True")
+	if strings.ToUpper(normalize) == "TRUE" {
+		name = normalizeName(name, "_")
+		name = normalizeName(name, " ")
+	}
+
+	// Build a client and grab the data from Wikimedia
 	client := APIClient{WikimediaUrl, &http.Client{}}
 	queryStatus, contents := retrievePersonData(name, &client)
-	contentStatus := checkIfMissing(contents)
-	fmt.Printf("Contents: %s", contents)
-	fmt.Printf("content status: %d", contentStatus)
 
+	// Verify we got data back
+	contentStatus := checkIfMissing(contents)
+
+	// If something went wrong in the request, respond with the error
 	if queryStatus != http.StatusOK {
 		c.String(queryStatus, "{%s}", contents)
+
+	// If we didn't find any info on the name passed in
+	// return with a 400
 	} else if contentStatus != http.StatusOK {
 		c.String(contentStatus, "{Failed to find data for %s}", name)
+
+	// If we got this far things are going well, grab the short description
+	// if its there and return with 200
 	} else {
 		description := parsePersonData(name, contents)
 		c.String(http.StatusOK, "{\"%s\": \"%s\"}", name, description)
