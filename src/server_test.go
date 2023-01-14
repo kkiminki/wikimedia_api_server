@@ -62,7 +62,7 @@ func TestRetrievePersonDataValid(t *testing.T) {
 // This test checks checkIfMissing against
 // valid input
 func TestCheckIfMissingValid(t *testing.T) {
-	data := "SomeJUnkData{{Short description|This should return}}But none of this"
+	data := `{"needs": "validJson", "pages": [{"missing": "false"}]}`
 	status := checkIfMissing(data)
 	if status != http.StatusOK {
 		t.Fatalf("checkIfMissing returned unexpected value for valid input: %d", status)
@@ -72,7 +72,7 @@ func TestCheckIfMissingValid(t *testing.T) {
 // This test checks checkIfMissing against
 // valid input
 func TestCheckIfMissingInvalid(t *testing.T) {
-	data := `SomeJUnkData{{Short description|This should return}}But none of this{"missing": true }`
+	data := `{"needs": "validJson", "pages": [{"missing": "true"}]}`
 	status := checkIfMissing(data)
 	if status != http.StatusBadRequest {
 		t.Fatalf("checkIfMissing returned unexpected value for invalid input: %d", status)

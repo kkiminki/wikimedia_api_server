@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,6 +78,9 @@ func retrievePersonData(name string, client *APIClient) (int, string) {
 	}
 
 	defer resp.Body.Close()
+
+	
+
 	return http.StatusOK, string(body[:])
 
 }
@@ -106,14 +110,20 @@ func checkIfMissing(data string) int {
 	// Check to see if this substring is in the
 	// data. I know, its hacky and this will give
 	// false negatives
-	re := regexp.MustCompile(`\"missing\":(\s*)true`)
-	match := re.FindStringSubmatch(data)
 
-	if len(match) > 0 {
-		return http.StatusBadRequest
-	} else {
-		return http.StatusOK
+	var jsonMap map[string]any
+	json.Unmarshal([]byte(data), &jsonMap)
+	pages := jsonMap["pages"].([]interface{})
+	for _, page := range pages {
+		pageData := page.(map[string]interface{})["missing"]
+		if pageData != nil{
+			if strings.ToUpper(pageData.(string)) == "TRUE" {
+				return http.StatusBadRequest
+			}
+		}
 	}
+	return http.StatusOK
+
 }
 
 // Normalize name input. Split the name on the delimiter
