@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
-	"errors"
-	"bytes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,8 +16,8 @@ import (
 const WikimediaUrl = "https://en.wikipedia.org/w/api.php?"
 
 type APIClient struct {
-	URL			string
-	client		*http.Client
+	URL    string
+	client *http.Client
 }
 
 func (c *APIClient) Get(params url.Values) (*http.Response, error) {
@@ -50,8 +50,6 @@ func main() {
 // data for the passed in name
 func retrievePersonData(name string, client *APIClient) (int, string) {
 
-
-
 	// Add on parameters for the request, the name gets
 	// passed in here
 	p := url.Values{}
@@ -62,7 +60,6 @@ func retrievePersonData(name string, client *APIClient) (int, string) {
 	p.Add("formatversion", "2")
 	p.Add("format", "json")
 	p.Add("rvprop", "content")
-
 
 	// Initialize http client and execute the get request
 	resp, err := client.Get(p)
@@ -75,7 +72,7 @@ func retrievePersonData(name string, client *APIClient) (int, string) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error pasing response %s", err)
-		return http.StatusInternalServerError, fmt.Sprintf("Error attempting to get data for %s from %s", name, WikimediaUrl)	
+		return http.StatusInternalServerError, fmt.Sprintf("Error attempting to get data for %s from %s", name, WikimediaUrl)
 	}
 
 	defer resp.Body.Close()
@@ -124,16 +121,16 @@ func checkIfMissing(data string) int {
 func getPerson(c *gin.Context) {
 
 	name := c.Query("name")
-	client := APIClient {WikimediaUrl, &http.Client{}}
+	client := APIClient{WikimediaUrl, &http.Client{}}
 	queryStatus, contents := retrievePersonData(name, &client)
 	contentStatus := checkIfMissing(contents)
 	fmt.Printf("Contents: %s", contents)
 	fmt.Printf("content status: %d", contentStatus)
 
 	if queryStatus != http.StatusOK {
-		c.String(queryStatus, contents)
+		c.String(queryStatus, "{%s}", contents)
 	} else if contentStatus != http.StatusOK {
-		c.String(contentStatus, "Failed to find data for %s", name)
+		c.String(contentStatus, "{Failed to find data for %s}", name)
 	} else {
 		description := parsePersonData(name, contents)
 		c.String(http.StatusOK, "{\"%s\": \"%s\"}", name, description)

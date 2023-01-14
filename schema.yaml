@@ -1,0 +1,12 @@
+schema:
+  routes:
+    person:
+      description: "This endpoint will query against the Wikimedia API to get a short description on the person passed in."
+      arguments:
+        name: "(Required) String containing the name of the person to query for"
+
+      responses:
+        500:  "Internal server error, failed to correctly recieve data from Wikimedia. Format {$ErrorMessage}"
+        400:  "There is no Wikimedia data for the name provided. Format {$ErrorMessage}"
+        200:  "The query to Wikimedia was successful and some data was found for the provided person (does not guarantee a description). Format {'$Name': '$Description'}"
+      
