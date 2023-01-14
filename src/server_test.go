@@ -4,6 +4,7 @@ import (
 	"testing"
     "net/http/httptest"
     "net/http"
+    "fmt"
     
 )
 
@@ -58,4 +59,25 @@ func TestRetrievePersonDataValid(t *testing.T) {
     if status != http.StatusOK {
         t.Fatalf("retrievePersonData returned unexpected value for valid input: %s", contents)
     }
+}
+
+// This test checks checkIfMissing against
+// valid input
+func TestCheckIfMissingValid(t *testing.T) {
+	data := "SomeJUnkData{{Short description|This should return}}But none of this"
+	status := checkIfMissing(data)
+	if status != http.StatusOK {
+		t.Fatalf("checkIfMissing returned unexpected value for valid input: %d", status)
+	}
+}
+
+// This test checks checkIfMissing against
+// valid input
+func TestCheckIfMissingInvalid(t *testing.T) {
+	data := `SomeJUnkData{{Short description|This should return}}But none of this{"missing": true }`
+	status := checkIfMissing(data)
+    fmt.Printf("status: %d", status)
+	if status != http.StatusBadRequest {
+		t.Fatalf("checkIfMissing returned unexpected value for invalid input: %d", status)
+	}
 }

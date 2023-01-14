@@ -101,18 +101,41 @@ func parsePersonData(name string, data string) string {
 
 }
 
+// Check the data to see if we actually got what
+// we wanted or if it was a miss
+func checkIfMissing(data string) int {
+
+	// Check to see if this substring is in the
+	// data. I know, its hacky and this will give
+	// false negatives
+	re := regexp.MustCompile(`\"missing\":(\s*)true`)
+	match := re.FindStringSubmatch(data)
+
+	if len(match) > 0 {
+		return http.StatusBadRequest
+	} else {
+		return http.StatusOK
+	}
+}
+
 // Route handler to get the short description
 // on the person passed in through the request
 // url
 func getPerson(c *gin.Context) {
-	name := c.Query("name")
 
+	name := c.Query("name")
 	client := APIClient {WikimediaUrl, &http.Client{}}
-	status, contents := retrievePersonData(name, &client)
-	if status != http.StatusOK {
-		c.String(status, contents)
+	queryStatus, contents := retrievePersonData(name, &client)
+	contentStatus := checkIfMissing(contents)
+	fmt.Printf("Contents: %s", contents)
+	fmt.Printf("content status: %d", contentStatus)
+
+	if queryStatus != http.StatusOK {
+		c.String(queryStatus, contents)
+	} else if contentStatus != http.StatusOK {
+		c.String(contentStatus, "Failed to find data for %s", name)
 	} else {
 		description := parsePersonData(name, contents)
-		c.String(status, "{\"%s\": \"%s\"}", name, description)
+		c.String(http.StatusOK, "{\"%s\": \"%s\"}", name, description)
 	}
 }
