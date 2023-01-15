@@ -134,7 +134,7 @@ func checkIfMissing(data string) int {
 	for _, page := range pages {
 		pageData := page.(map[string]interface{})["missing"]
 		if pageData != nil{
-			if strings.ToUpper(pageData.(string)) == "TRUE" {
+			if pageData.(bool) {
 				return http.StatusBadRequest
 			}
 		}
