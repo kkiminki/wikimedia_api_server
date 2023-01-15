@@ -9,7 +9,7 @@ import (
 // This test checks parsePersonData against
 // valid input
 func TestParsePersonDataValid(t *testing.T) {
-	data := `{"needs": "validJson", "pages": [{"revisions": [{"content": "{{Short description|This should return}}"}]}]}`
+	data := `{"needs": "validJson", "query": {"pages": [{"revisions": [{"content": "{{Short description|This should return}}"}]}]}}`
 	description := parsePersonData("JohnDoe", data)
 	if description != "This should return" {
 		t.Fatalf("parsePersonData returned unexpected value for valid input: %s", description)
@@ -19,7 +19,7 @@ func TestParsePersonDataValid(t *testing.T) {
 // This test checks parsePersonData against
 // invalid input
 func TestParsePersonDataInvalid(t *testing.T) {
-	data := `{"needs": "validJson", "pages": [{"revisions": [{"content": "{{Shortdescription|This should return}}"}]}]}`
+	data := `{"needs": "validJson", "query": {"pages": [{"revisions": [{"content": "{{Shortdescription|This should return}}"}]}]}}`
 	description := parsePersonData("JohnDoe", data)
 	if description != "Description for JohnDoe could not be found" {
 		t.Fatalf("parsePersonData returned unexpected value for invalid input: %s", description)
@@ -62,7 +62,7 @@ func TestRetrievePersonDataValid(t *testing.T) {
 // This test checks checkIfMissing against
 // valid input
 func TestCheckIfMissingValid(t *testing.T) {
-	data := `{"needs": "validJson", "pages": [{"missing": "false"}]}`
+	data := `{"needs": "validJson", "query": {"pages": [{"missing": "false"}]}}`
 	status := checkIfMissing(data)
 	if status != http.StatusOK {
 		t.Fatalf("checkIfMissing returned unexpected value for valid input: %d", status)
@@ -72,7 +72,7 @@ func TestCheckIfMissingValid(t *testing.T) {
 // This test checks checkIfMissing against
 // valid input
 func TestCheckIfMissingInvalid(t *testing.T) {
-	data := `{"needs": "validJson", "pages": [{"missing": "true"}]}`
+	data := `{"needs": "validJson", "query": {"pages": [{"missing": "true"}]}}`
 	status := checkIfMissing(data)
 	if status != http.StatusBadRequest {
 		t.Fatalf("checkIfMissing returned unexpected value for invalid input: %d", status)

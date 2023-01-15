@@ -93,7 +93,8 @@ func parsePersonData(name string, data string) string {
 	pageData := ""
 	var jsonMap map[string]any
 	json.Unmarshal([]byte(data), &jsonMap)
-	pages := jsonMap["pages"].([]interface{})
+	query := jsonMap["query"].(map[string]interface{})
+	pages := query["pages"].([]interface{})
 	for _, page := range pages {
 		revisions := page.(map[string]interface{})["revisions"].([]interface{})
 		if revisions != nil{
@@ -128,7 +129,8 @@ func checkIfMissing(data string) int {
 	// missing field is true
 	var jsonMap map[string]any
 	json.Unmarshal([]byte(data), &jsonMap)
-	pages := jsonMap["pages"].([]interface{})
+	query := jsonMap["query"].(map[string]interface{})
+	pages := query["pages"].([]interface{})
 	for _, page := range pages {
 		pageData := page.(map[string]interface{})["missing"]
 		if pageData != nil{
