@@ -13,4 +13,4 @@ WORKDIR /root/
 COPY --from=builder /build/wikimedia_api_server ./
 EXPOSE 8080
 
-CMD ["./wikimedia_api_server"]  
+CMD ["./wikimedia_api_server"]
